@@ -5,7 +5,41 @@ import getpass
 import os
 import time
 import configparser
+import matplotlib.pyplot as plt
+import sched, time
 
+def getllvalues(scheduler):
+    scheduler.enter(60, 1, getllvalues, (scheduler,))
+    sensor_reading = client.latest(patient_identifier=patient)
+    nowtime = datetime.now()
+    lastmeas = sensor_reading.timestamp
+    diff = nowtime - lastmeas
+    if sensor_reading.measurement_color == 1:
+        thecolour = COLOUR_GREEN
+    elif sensor_reading.measurement_color == 2:
+        thecolour = COLOUR_YELLOW
+    elif sensor_reading.measurement_color == 3:
+        thecolour = COLOUR_ORANGE
+    elif sensor_reading.measurement_color == 4:
+        thecolour = COLOUR_RED
+    else:
+        thecolour = COLOUR_WHITE
+    if diff.total_seconds()>=70:
+        print(f"{COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_WHITE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
+    else:
+        print(f"{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
+#    graph_data = client.graph(patient_identifier=patient)
+#    x.clear()
+#    y.clear()
+#    for measurement in graph_data:
+##        print(f"{measurement.value} {measurement.timestamp}")
+#        x.append(measurement.timestamp)
+#        y.append(measurement.value)
+#    graph.remove()
+#    graph = plt.plot(x, y)[0]
+#    #plt.gcf().autofmt_xdate()
+#    plt.pause(0.25)
+    
 #os.environ["http_proxy"] = "<server>:<port>"
 #os.environ["https_proxy"] = "<server>:<port>"
 
@@ -36,34 +70,22 @@ print(patient_list)
 # 3 = ?
 # 4 = red
 patient = patient_list[0]
-while True:
-    sensor_reading = client.latest(patient_identifier=patient)
-    nowtime = datetime.now()
-    lastmeas = sensor_reading.timestamp
-    diff = nowtime - lastmeas
-    if sensor_reading.measurement_color == 1:
-        thecolour = COLOUR_GREEN
-    elif sensor_reading.measurement_color == 2:
-        thecolour = COLOUR_YELLOW
-    elif sensor_reading.measurement_color == 3:
-        thecolour = COLOUR_ORANGE
-    elif sensor_reading.measurement_color == 4:
-        thecolour = COLOUR_RED
-    else:
-        thecolour = COLOUR_WHITE
-    if diff.total_seconds()>=70:
-        print(f"{COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_WHITE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
-    else:
-        print(f"{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
-    time.sleep(60)
+
+#plt.ion()
+#x = []
+#y = []
+#graph = plt.plot(x, y)[0]
+#plt.xlabel('Date')
+#plt.ylabel('CGM')
+#plt.pause(0.25)
+
+my_scheduler = sched.scheduler(time.time, time.sleep)
+my_scheduler.enter(0, 1, getllvalues, (my_scheduler,))
+my_scheduler.run()
 
 #other useful functions, for noting
 #
-#graph_data = client.graph(patient_identifier=patient)
 #print(f"graph data ({len(graph_data)} measurements):")
-#
-#for measurement in graph_data:
-#    print(f"{measurement.value} {measurement.timestamp} {measurement.factory_timestamp}")
 #
 #logbook_data = client.logbook(patient_identifier=patient)
 #print(f"logbook data: ({len(logbook_data)} entries)")
