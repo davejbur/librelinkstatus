@@ -9,49 +9,78 @@ import configparser
 import matplotlib.pyplot as plt
 import sched, time
 
+client = None
+
+def makeconnection():
+    print("Making connection...")
+    global client
+    global the_username
+    global the_password
+    client = PyLibreLinkUp(email=the_username, password=the_password, api_url = api_url.APIUrl.EU2)
+    client.authenticate()
+    patient_list = client.get_patients()
+    print(patient_list)
+    return patient_list[0]
+
 def getllvalues():
+    global client
+    global patient
     global lblvalue
+#    connected = False
+    connected = True
 #    scheduler.enter(60, 1, getllvalues, (scheduler,))
-    sensor_reading = client.latest(patient_identifier=patient)
-    nowtime = datetime.now()
-    lastmeas = sensor_reading.timestamp
-    diff = nowtime - lastmeas
-    textdisplay = str(sensor_reading.value) + sensor_reading.trend.indicator
-    if sensor_reading.measurement_color == 1:
-        thecolour = COLOUR_GREEN
-        colour1 = "green"
-        colour2 = "black"
-        lblvalue.config(text = textdisplay,fg = "green")
-    elif sensor_reading.measurement_color == 2:
-        thecolour = COLOUR_YELLOW
-        colour1 = "yellow"
-        colour2 = "black"
-        lblvalue.config(text = textdisplay,fg = "yellow")
-    elif sensor_reading.measurement_color == 3:
-        thecolour = COLOUR_ORANGE
-        colour1 = "orange"
-        colour2 = "black"
-        lblvalue.config(text = textdisplay,fg = "orange")
-    elif sensor_reading.measurement_color == 4:
-        thecolour = COLOUR_RED
-        colour1 = "red"
-        colour2 = "black"
-        lblvalue.config(text = textdisplay,fg = "red")
+# FIXME - if error here, need to try reconnect (need to blank/mark display if lost connection)
+    try:
+        sensor_reading = client.latest(patient_identifier=patient)
+#        connected = True
+    except Exception as e:
+        print("Connection failed, retrying...{}".format(e))
+        connected = False
+
+    if connected:
+        nowtime = datetime.now()
+        lastmeas = sensor_reading.timestamp
+        diff = nowtime - lastmeas
+        textdisplay = str(sensor_reading.value) + sensor_reading.trend.indicator
+        if sensor_reading.measurement_color == 1:
+            thecolour = COLOUR_GREEN
+            colour1 = "green"
+            colour2 = "black"
+            lblvalue.config(text = textdisplay,fg = "green")
+        elif sensor_reading.measurement_color == 2:
+            thecolour = COLOUR_YELLOW
+            colour1 = "yellow"
+            colour2 = "black"
+            lblvalue.config(text = textdisplay,fg = "yellow")
+        elif sensor_reading.measurement_color == 3:
+            thecolour = COLOUR_ORANGE
+            colour1 = "orange"
+            colour2 = "black"
+            lblvalue.config(text = textdisplay,fg = "orange")
+        elif sensor_reading.measurement_color == 4:
+            thecolour = COLOUR_RED
+            colour1 = "red"
+            colour2 = "black"
+            lblvalue.config(text = textdisplay,fg = "red")
+        else:
+            thecolour = COLOUR_WHITE
+            colour1 = "white"
+            colour2 = "black"
+        if diff.total_seconds()>=70:
+            print(f"{COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
+            lblvalue.config(text = textdisplay,fg = colour2, bg = colour1)
+            lbltime.config(text = sensor_reading.timestamp,fg = colour2, bg = colour1)
+        else:
+            print(f"{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
+            lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
+            lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
     else:
-        thecolour = COLOUR_WHITE
-        colour1 = "white"
-        colour2 = "black"
-    if diff.total_seconds()>=70:
-        print(f"{COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
-        lblvalue.config(text = textdisplay,fg = colour2, bg = colour1)
-        lbltime.config(text = sensor_reading.timestamp,fg = colour2, bg = colour1)
-    else:
-        print(f"{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
-        lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
-        lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
+        patient = makeconnection()
     window.after(60000,getllvalues)
     
 def getllvaluesgraph():
+    global client
+    global patient
     global graph
 #    scheduler.enter(300, 1, getllvaluesgraph, (scheduler,))
     graph_data = client.graph(patient_identifier=patient)
@@ -90,12 +119,7 @@ config.read('config.ini')
 
 the_username = config['account']['llusername']
 the_password = getpass.getpass(prompt='Enter password: ')
-
-client = PyLibreLinkUp(email=the_username, password=the_password, api_url = api_url.APIUrl.EU2)
-client.authenticate()
-
-patient_list = client.get_patients()
-print(patient_list)
+patient = makeconnection()
 
 #colours:
 # 0 = ?
@@ -103,7 +127,6 @@ print(patient_list)
 # 2 = yellow
 # 3 = ?
 # 4 = red
-patient = patient_list[0]
 
 #plt.ion()
 #x = []
