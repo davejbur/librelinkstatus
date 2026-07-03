@@ -26,6 +26,8 @@ def getllvalues():
     global client
     global patient
     global lblvalue
+    global intervalms
+    global timeoutwarningsec
 #    connected = False
     connected = True
 #    scheduler.enter(60, 1, getllvalues, (scheduler,))
@@ -66,17 +68,17 @@ def getllvalues():
             thecolour = COLOUR_WHITE
             colour1 = "white"
             colour2 = "black"
-        if diff.total_seconds()>=70:
-            print(f"{COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
+        if diff.total_seconds()>=timeoutwarningsec:
+            print(f"{datetime.now()} {COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
             lblvalue.config(text = textdisplay,fg = colour2, bg = colour1)
             lbltime.config(text = sensor_reading.timestamp,fg = colour2, bg = colour1)
         else:
-            print(f"{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
+            print(f"{datetime.now()} {sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
             lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
             lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
     else:
         patient = makeconnection()
-    window.after(60000,getllvalues)
+    window.after(intervalms,getllvalues)
     
 def getllvaluesgraph():
     global client
@@ -118,6 +120,21 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 the_username = config['account']['llusername']
+
+temp = config['timing']['intervalms']
+try:
+    intervalms = int(temp)
+except ValueError:
+    print(f"Invalid value in config file for intervalms {temp}, using default 60000")
+    intervalms = 60000
+    
+temp = config['timing']['timeoutwarningsec']
+try:
+    timeoutwarningsec = int(temp)
+except ValueError:
+    print(f"Invalid value in config file for timeoutwarningsec {temp}, using default 70")
+    timeoutwarningsec = 70
+
 the_password = getpass.getpass(prompt='Enter password: ')
 patient = makeconnection()
 
