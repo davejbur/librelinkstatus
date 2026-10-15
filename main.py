@@ -8,19 +8,27 @@ import time
 import configparser
 import matplotlib.pyplot as plt
 import sched, time
-
 client = None
 
+#FIXME - try setting User-Agent
+#Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+#Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0
+
 def makeconnection():
-    print("Making connection...")
-    global client
-    global the_username
-    global the_password
-    client = PyLibreLinkUp(email=the_username, password=the_password, api_url = api_url.APIUrl.EU2)
-    client.authenticate()
-    patient_list = client.get_patients()
-    print(patient_list)
-    return patient_list[0]
+    try:
+        print("Making connection...")
+        global client
+        global the_username
+        global the_password
+        client = PyLibreLinkUp(email=the_username, password=the_password, api_url = api_url.APIUrl.EU2)
+#        client.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0")
+        client.authenticate()
+        patient_list = client.get_patients()
+        print(patient_list)
+        return patient_list[0]
+    except Exception as e:
+        print("Re-connection failed, retrying...{}".format(e))
+        return None
 
 def getllvalues():
     global client
@@ -32,52 +40,53 @@ def getllvalues():
     connected = True
 #    scheduler.enter(60, 1, getllvalues, (scheduler,))
 # FIXME - if error here, need to try reconnect (need to blank/mark display if lost connection)
-    try:
-        sensor_reading = client.latest(patient_identifier=patient)
-#        connected = True
-    except Exception as e:
-        print("Connection failed, retrying...{}".format(e))
-        connected = False
+    if patient is not None:
+        try:
+            sensor_reading = client.latest(patient_identifier=patient)
+    #        connected = True
+        except Exception as e:
+            print("Connection failed, retrying...{}".format(e))
+            connected = False
 
-    if connected:
-        nowtime = datetime.now()
-        lastmeas = sensor_reading.timestamp
-        diff = nowtime - lastmeas
-        textdisplay = str(sensor_reading.value) + sensor_reading.trend.indicator
-        if sensor_reading.measurement_color == 1:
-            thecolour = COLOUR_GREEN
-            colour1 = "green"
-            colour2 = "black"
-            lblvalue.config(text = textdisplay,fg = "green")
-        elif sensor_reading.measurement_color == 2:
-            thecolour = COLOUR_YELLOW
-            colour1 = "yellow"
-            colour2 = "black"
-            lblvalue.config(text = textdisplay,fg = "yellow")
-        elif sensor_reading.measurement_color == 3:
-            thecolour = COLOUR_ORANGE
-            colour1 = "orange"
-            colour2 = "black"
-            lblvalue.config(text = textdisplay,fg = "orange")
-        elif sensor_reading.measurement_color == 4:
-            thecolour = COLOUR_RED
-            colour1 = "red"
-            colour2 = "black"
-            lblvalue.config(text = textdisplay,fg = "red")
+        if connected:
+            nowtime = datetime.now()
+            lastmeas = sensor_reading.timestamp
+            diff = nowtime - lastmeas
+            textdisplay = str(sensor_reading.value) + sensor_reading.trend.indicator
+            if sensor_reading.measurement_color == 1:
+                thecolour = COLOUR_GREEN
+                colour1 = "green"
+                colour2 = "black"
+                lblvalue.config(text = textdisplay,fg = "green")
+            elif sensor_reading.measurement_color == 2:
+                thecolour = COLOUR_YELLOW
+                colour1 = "yellow"
+                colour2 = "black"
+                lblvalue.config(text = textdisplay,fg = "yellow")
+            elif sensor_reading.measurement_color == 3:
+                thecolour = COLOUR_ORANGE
+                colour1 = "orange"
+                colour2 = "black"
+                lblvalue.config(text = textdisplay,fg = "orange")
+            elif sensor_reading.measurement_color == 4:
+                thecolour = COLOUR_RED
+                colour1 = "red"
+                colour2 = "black"
+                lblvalue.config(text = textdisplay,fg = "red")
+            else:
+                thecolour = COLOUR_WHITE
+                colour1 = "white"
+                colour2 = "black"
+            if diff.total_seconds()>=timeoutwarningsec:
+                print(f"{datetime.now()} {COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
+                lblvalue.config(text = textdisplay,fg = colour2, bg = colour1)
+                lbltime.config(text = sensor_reading.timestamp,fg = colour2, bg = colour1)
+            else:
+                print(f"{datetime.now()} {sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
+                lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
+                lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
         else:
-            thecolour = COLOUR_WHITE
-            colour1 = "white"
-            colour2 = "black"
-        if diff.total_seconds()>=timeoutwarningsec:
-            print(f"{datetime.now()} {COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
-            lblvalue.config(text = textdisplay,fg = colour2, bg = colour1)
-            lbltime.config(text = sensor_reading.timestamp,fg = colour2, bg = colour1)
-        else:
-            print(f"{datetime.now()} {sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
-            lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
-            lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
-    else:
-        patient = makeconnection()
+            patient = makeconnection()
     window.after(intervalms,getllvalues)
     
 def getllvaluesgraph():
