@@ -130,18 +130,24 @@ config.read('config.ini')
 
 the_username = config['account']['llusername']
 
-temp = config['timing']['intervalms']
 try:
+    temp = config['timing']['intervalms']
     intervalms = int(temp)
+except KeyError:
+    print(f"No value in config file for [timing] intervalms, using default 60000")
+    intervalms = 60000
 except ValueError:
-    print(f"Invalid value in config file for intervalms {temp}, using default 60000")
+    print(f"Invalid value in config file for [timing] intervalms {temp}, using default 60000")
     intervalms = 60000
     
-temp = config['timing']['timeoutwarningsec']
 try:
+    temp = config['timing']['timeoutwarningsec']
     timeoutwarningsec = int(temp)
+except KeyError:
+    print(f"No value in config file for [timing] timeoutwarningsec, using default 70")
+    timeoutwarningsec = 70
 except ValueError:
-    print(f"Invalid value in config file for timeoutwarningsec {temp}, using default 70")
+    print(f"Invalid value in config file for [timing] timeoutwarningsec {temp}, using default 70")
     timeoutwarningsec = 70
 
 the_password = getpass.getpass(prompt='Enter password: ')
