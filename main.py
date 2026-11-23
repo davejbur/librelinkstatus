@@ -8,6 +8,7 @@ import time
 import configparser
 import matplotlib.pyplot as plt
 import sched, time
+
 client = None
 
 #FIXME - try setting User-Agent
@@ -85,6 +86,18 @@ def getllvalues():
                 print(f"{datetime.now()} {sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
                 lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
                 lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
+#            if (sensor_reading.is_high) and not lastwashigh:
+                #play high beep
+#                player.play_note("G", 0.2)
+#                player.play_note("A", 0.2)
+#                player.play_note("B", 0.2)
+#            if (sensor_reading.is_low) and not lastwaslow:
+                #play low beep
+#                player.play_note("B", 0.2)
+#                player.play_note("A", 0.2)
+#                player.play_note("G", 0.2)
+            lastwashigh = sensor_reading.is_high
+            lastwaslow = sensor_reading.is_low
         else:
             patient = makeconnection()
     window.after(intervalms,getllvalues)
@@ -124,6 +137,9 @@ COLOUR_WHITE = '\033[97m'
 COLOUR_ORANGE = '\033[38;2;255;165;0m'
 COLOUR_RESET = '\033[0m' # called to return to standard terminal text color
 COLOUR_NEGATIVE = "\033[7m"
+
+lastwashigh = False
+lastwaslow = False
 
 config = configparser.ConfigParser()
 config.read('config.ini')
