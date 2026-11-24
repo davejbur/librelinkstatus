@@ -28,7 +28,7 @@ def makeconnection():
         print(patient_list)
         return patient_list[0]
     except Exception as e:
-        print("Re-connection failed, retrying...{}".format(e))
+        print("Re-connection failed with {0}, retrying...{1}".format(type(e).__name__,e))
         return None
 
 def getllvalues():
@@ -166,8 +166,11 @@ except ValueError:
     print(f"Invalid value in config file for [timing] timeoutwarningsec {temp}, using default 70")
     timeoutwarningsec = 70
 
-the_password = getpass.getpass(prompt='Enter password: ')
-patient = makeconnection()
+#FIXME - if password is incorrect, retry or fail gracefully here
+patient = None
+while patient is None:
+    the_password = getpass.getpass(prompt='Enter password: ')
+    patient = makeconnection()
 
 #colours:
 # 0 = ?
