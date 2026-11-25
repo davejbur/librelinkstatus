@@ -12,6 +12,7 @@ import sched, time
 try:
     import musicalbeeps
 except ImportError:
+    print("Unable to find musicalbeeps - try \"pip install musicalbeeps\"")
     musicalbeeps = None
 
 client = None
