@@ -8,7 +8,11 @@ import time
 import configparser
 import matplotlib.pyplot as plt
 import sched, time
-import musicalbeeps
+
+try:
+    import musicalbeeps
+except ImportError:
+    musicalbeeps = None
 
 client = None
 
@@ -87,16 +91,17 @@ def getllvalues():
                 print(f"{datetime.now()} {sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
                 lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
                 lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
-            if (sensor_reading.is_high) and not lastwashigh:
-                #play high beep
-                player.play_note("G",0.2)
-                player.play_note("A",0.2)
-                player.play_note("B",0.2)
-            if (sensor_reading.is_low) and not lastwaslow:
-                #play low beep
-                player.play_note("B",0.2)
-                player.play_note("A",0.2)
-                player.play_note("G",0.2)
+            if player is not None:
+                if (sensor_reading.is_high) and not lastwashigh:
+                    #play high beep
+                    player.play_note("G",0.2)
+                    player.play_note("A",0.2)
+                    player.play_note("B",0.2)
+                if (sensor_reading.is_low) and not lastwaslow:
+                    #play low beep
+                    player.play_note("B",0.2)
+                    player.play_note("A",0.2)
+                    player.play_note("G",0.2)
             lastwashigh = sensor_reading.is_high
             lastwaslow = sensor_reading.is_low
         else:
@@ -131,7 +136,10 @@ lbltime = tk.Label(window, text = "--/--/---- --:--:--",bg = "black", font=("Ari
 lblvalue.pack()
 lbltime.pack()
 
-player = musicalbeeps.Player()
+if musicalbeeps is not None:
+    player = musicalbeeps.Player()
+else:
+    player = None
 
 COLOUR_RED = '\033[31m'
 COLOUR_GREEN = '\033[32m'
