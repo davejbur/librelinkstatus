@@ -43,14 +43,13 @@ def getllvalues():
     global lblvalue
     global intervalms
     global timeoutwarningsec
-#    connected = False
+    global isfirsttime
+    
     connected = True
-#    scheduler.enter(60, 1, getllvalues, (scheduler,))
-# FIXME - if error here, need to try reconnect (need to blank/mark display if lost connection)
+    nextintervalms = intervalms
     if patient is not None:
         try:
             sensor_reading = client.latest(patient_identifier=patient)
-    #        connected = True
         except Exception as e:
             print("Connection failed, retrying...{}".format(e))
             connected = False
@@ -59,6 +58,7 @@ def getllvalues():
             nowtime = datetime.now()
             lastmeas = sensor_reading.timestamp
             diff = nowtime - lastmeas
+            diffsec = diff.total_seconds()
             textdisplay = str(sensor_reading.value) + sensor_reading.trend.indicator
             if sensor_reading.measurement_color == 1:
                 thecolour = COLOUR_GREEN
@@ -84,14 +84,14 @@ def getllvalues():
                 thecolour = COLOUR_WHITE
                 colour1 = "white"
                 colour2 = "black"
-            if diff.total_seconds()>=timeoutwarningsec:
-                print(f"{datetime.now()} {COLOUR_NEGATIVE}{sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
+            if diffsec>=timeoutwarningsec:
+                print(f"{nowtime} {COLOUR_NEGATIVE}{lastmeas} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{COLOUR_NEGATIVE}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator} Offline for: {diff}{COLOUR_RESET}")
                 lblvalue.config(text = textdisplay,fg = colour2, bg = colour1)
-                lbltime.config(text = sensor_reading.timestamp,fg = colour2, bg = colour1)
+                lbltime.config(text = lastmeas,fg = colour2, bg = colour1)
             else:
-                print(f"{datetime.now()} {sensor_reading.timestamp} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
+                print(f"{nowtime} {lastmeas} Current Reading: {thecolour}{sensor_reading.value}{COLOUR_RESET}{" HIGH" if sensor_reading.is_high else ""}{" LOW" if sensor_reading.is_low else ""} Trend: {sensor_reading.trend.indicator}")
                 lblvalue.config(text = textdisplay,fg = colour1, bg = colour2)
-                lbltime.config(text = sensor_reading.timestamp,fg = colour1, bg = colour2)
+                lbltime.config(text = lastmeas,fg = colour1, bg = colour2)
             if player is not None:
                 if (sensor_reading.is_high) and not lastwashigh:
                     #play high beep
@@ -105,9 +105,15 @@ def getllvalues():
                     player.play_note("G",0.2)
             lastwashigh = sensor_reading.is_high
             lastwaslow = sensor_reading.is_low
+            #try to realign next time we get data to just after it's been updated
+            if isfirsttime:
+                nextintervalms = round(intervalms-(diffsec*1000)+10000)  #add 10s on to allow for slight lag
+#                print(f"Setting next interval to {nextintervalms}")
+                isfirsttime = False
         else:
+            isfirsttime = True
             patient = makeconnection()
-    window.after(intervalms,getllvalues)
+    window.after(nextintervalms,getllvalues)
     
 def getllvaluesgraph():
     global client
@@ -204,6 +210,7 @@ while patient is None:
 #my_scheduler.enter(0, 1, getllvaluesgraph, (my_scheduler,))
 #my_scheduler.run()
 
+isfirsttime = True
 window.after(0,getllvalues)
 window.mainloop()
 
